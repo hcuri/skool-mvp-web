@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: skool-mvp-web
+  {{- if .Values.namespace }}
+  namespace: {{ .Values.namespace | quote }}
+  {{- end }}
+  labels:
+    {{- include "skool-mvp-web.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "skool-mvp-web.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: 80

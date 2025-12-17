@@ -1,0 +1,6 @@
+apiVersion: v2
+name: skool-mvp-web
+description: Skool MVP Web frontend
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
