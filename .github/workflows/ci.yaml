@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: skool-mvp-web-${{ github.ref == 'refs/heads/main' && 'main' || github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npm run build
+
+  build-and-push:
+    if: github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      sha: ${{ steps.set-sha.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Set short SHA
+        id: set-sha
+        run: echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push (linux/amd64)
+        run: |
+          SHA="${{ steps.set-sha.outputs.sha }}"
+          docker buildx build \
+            --platform linux/amd64 \
+            -t hcuri/skool-mvp-web:${SHA} \
+            --push .
+      - name: Summarize image tag
+        run: |
+          SHA="${{ steps.set-sha.outputs.sha }}"
+          echo "Pushed image \`hcuri/skool-mvp-web:${SHA}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  bump-gitops:
+    if: github.ref == 'refs/heads/main'
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      SHA: ${{ needs.build-and-push.outputs.sha }}
+    steps:
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: hcuri/skool-mvp-gitops
+          token: ${{ secrets.GH_PAT }}
+          fetch-depth: 0
+      - name: Update image tag
+        run: |
+          FILE="environments/dev/skool-mvp-web/values.yaml"
+          if [ ! -f "$FILE" ]; then
+            echo "missing values file: $FILE" && exit 1
+          fi
+          sed -i "s/^  tag:.*/  tag: \"${SHA}\"/" "$FILE"
+          echo "Updated $FILE to tag ${SHA}"
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Create branch
+        run: |
+          git checkout -b "bump-skool-mvp-web-${SHA}"
+      - name: Commit changes
+        run: |
+          git add environments/dev/skool-mvp-web/values.yaml
+          git commit -m "chore: bump skool-mvp-web image to ${SHA}"
+      - name: Push branch
+        run: git push origin "bump-skool-mvp-web-${SHA}"
+      - name: Open PR
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          gh pr create \
+            --base main \
+            --head "bump-skool-mvp-web-${SHA}" \
+            --title "chore: bump skool-mvp-web image to ${SHA}" \
+            --body "Pushed image \`hcuri/skool-mvp-web:${SHA}\` from commit https://github.com/hcuri/skool-mvp-web/commit/${SHA}."
