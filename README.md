@@ -22,15 +22,26 @@ Minimal React frontend for the Skool MVP project. Lists communities, creates new
 npm install
 npm run dev
 ```
-- API base URL defaults to `http://localhost:8080`. Override with `VITE_API_BASE_URL`:
-  ```bash
-  VITE_API_BASE_URL="http://your-api" npm run dev
-  ```
+
+### Backend requirement
+- Start the API locally on `http://localhost:8080` (default for `skool-mvp-api`).
+- During local dev, Vite proxies API requests (`/communities`, `/healthz`, etc.) to `http://localhost:8080` so the browser stays same-origin and avoids CORS.
+
+### Using a remote API (optional)
+You can proxy to a remote API without changing frontend code:
+```bash
+VITE_API_PROXY_TARGET="https://api.skoo1.com" npm run dev
+```
+
+If you explicitly want the frontend to call a different base URL (not recommended unless the API allows CORS), set:
+```bash
+VITE_API_BASE_URL="https://api.skoo1.com" npm run dev
+```
 - Build for production: `npm run build`
 - Preview build locally: `npm run preview`
 
 ## API client
-- Uses `import.meta.env.VITE_API_BASE_URL` with a fallback to `http://localhost:8080`.
+- Uses `import.meta.env.VITE_API_BASE_URL` (optional). Default is same-origin (relative paths).
 - Calls:
   - `GET /communities`
   - `POST /communities`
@@ -47,4 +58,5 @@ docker run -p 8081:80 skool-mvp-web:local
 ## Deployment
 - Packaged as a Helm chart (`charts/skool-mvp-web`).
 - In EKS, ArgoCD pulls the chart from this repo and applies environment-specific values from the GitOps repo: https://github.com/hcuri/skool-mvp-gitops
-- Service is `LoadBalancer` by default; `VITE_API_BASE_URL` is injected via chart values.
+- Service is `ClusterIP` and exposed via ALB Ingress at `https://web.skoo1.com`.
+- The ALB routes API paths to the backend so the frontend can use same-origin requests (no CORS).

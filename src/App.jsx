@@ -103,7 +103,7 @@ export default function App() {
           <p className="eyebrow">Skool MVP</p>
           <h1>Communities & Posts</h1>
         </div>
-        <div className="meta">API: {import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}</div>
+        <div className="meta">API: {import.meta.env.VITE_API_BASE_URL || 'same-origin'}</div>
       </header>
 
       {(error || message) && (

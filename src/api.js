@@ -1,4 +1,9 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+
+function url(path) {
+  if (!API_BASE_URL) return path
+  return `${API_BASE_URL}${path}`
+}
 
 async function handleResponse(res) {
   if (!res.ok) {
@@ -10,12 +15,12 @@ async function handleResponse(res) {
 }
 
 export async function getCommunities() {
-  const res = await fetch(`${API_BASE_URL}/communities`)
+  const res = await fetch(url('/communities'))
   return handleResponse(res)
 }
 
 export async function createCommunity(name, description) {
-  const res = await fetch(`${API_BASE_URL}/communities`, {
+  const res = await fetch(url('/communities'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, description }),
@@ -24,12 +29,12 @@ export async function createCommunity(name, description) {
 }
 
 export async function getPosts(communityId) {
-  const res = await fetch(`${API_BASE_URL}/communities/${communityId}/posts`)
+  const res = await fetch(url(`/communities/${communityId}/posts`))
   return handleResponse(res)
 }
 
 export async function createPost(communityId, title, content) {
-  const res = await fetch(`${API_BASE_URL}/communities/${communityId}/posts`, {
+  const res = await fetch(url(`/communities/${communityId}/posts`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title, content }),
