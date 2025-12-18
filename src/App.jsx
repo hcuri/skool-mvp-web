@@ -42,9 +42,10 @@ export default function App() {
     setError('')
     try {
       const data = await getCommunities()
-      setCommunities(data)
-      if (!selectedCommunityId && data.length > 0) {
-        setSelectedCommunityId(data[0].id)
+      const safeData = Array.isArray(data) ? data : []
+      setCommunities(safeData)
+      if (!selectedCommunityId && safeData.length > 0) {
+        setSelectedCommunityId(safeData[0].id)
       }
     } catch (err) {
       setError(err.message || 'Failed to load communities')
@@ -58,7 +59,7 @@ export default function App() {
     setError('')
     try {
       const data = await getPosts(communityId)
-      setPosts(data)
+      setPosts(Array.isArray(data) ? data : [])
     } catch (err) {
       setError(err.message || 'Failed to load posts')
     } finally {

@@ -1,11 +1,13 @@
 export default function CommunitiesList({ communities, selectedId, onSelect }) {
-  if (!communities.length) {
+  const safeCommunities = Array.isArray(communities) ? communities : []
+
+  if (!safeCommunities.length) {
     return <p className="muted">No communities yet. Create one to get started.</p>
   }
 
   return (
     <ul className="list">
-      {communities.map((community) => (
+      {safeCommunities.map((community) => (
         <li
           key={community.id}
           className={community.id === selectedId ? 'list-item active' : 'list-item'}
